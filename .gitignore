@@ -1,0 +1,3 @@
+/storage/framework/views/*.php
+/db/data/
+.env
