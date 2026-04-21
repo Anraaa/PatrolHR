@@ -35,7 +35,7 @@ class ListPatrols extends ListRecords
                             Column::make('patrol_time')->heading('Tanggal Patrol'),
                             Column::make('employee.nip')->heading('NIP'),
                             Column::make('employee.name')->heading('Nama Karyawan'),
-                            Column::make('employee.department.name')->heading('Departemen'),
+                            Column::make('employee.shfgroup')->heading('Shift Group'),
                             Column::make('shift.name')->heading('Grup-Shift'),
                             Column::make('description')->heading('Item Temuan'),
                             Column::make('violation.name')->heading('Jenis Pelanggaran'),
@@ -51,7 +51,7 @@ class ListPatrols extends ListRecords
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('danger')
                 ->action(function () {
-                    $query = Patrol::with(['employee.department', 'shift', 'location', 'violation', 'action', 'user'])
+                    $query = Patrol::with(['employee', 'shift', 'location', 'violation', 'action', 'user'])
                         ->orderByDesc('patrol_time');
 
                     // Apply current table filters if they exist

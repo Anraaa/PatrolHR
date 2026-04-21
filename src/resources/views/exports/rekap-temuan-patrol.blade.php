@@ -89,7 +89,7 @@
                 @php
                     $pt         = $patrol->patrol_time ? \Carbon\Carbon::parse($patrol->patrol_time) : null;
                     $employee   = $patrol->employee;
-                    $dept       = $employee?->department;
+                    $shfgroup   = $employee?->shfgroup ?? '—';
                     $violation  = $patrol->violation;
                     $action     = $patrol->action;
                     $actionName = $action->name ?? null;
@@ -121,7 +121,7 @@
                     </td>
 
                     {{-- 4. Group / Dept --}}
-                    <td class="col-group">{{ $dept?->name ?? '—' }}</td>
+                    <td class="col-group">{{ $shfgroup }}</td>
 
                     {{-- 5. Jam --}}
                     <td class="col-jam">{{ $pt?->format('H:i') ?? '—' }}</td>
@@ -143,9 +143,7 @@
                         @if ($employee)
                             <strong>{{ $employee->name }}</strong><br>
                             <span class="text-small">NIP: {{ $employee->nip ?? '-' }}</span>
-                            @if ($dept)
-                                <br><span class="text-small">{{ $dept->name }}</span>
-                            @endif
+                            <br><span class="text-small">Group: {{ $shfgroup }}</span>
                         @else
                             —
                         @endif

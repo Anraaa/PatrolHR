@@ -23,12 +23,16 @@ class Patrol extends Model
         'signature',
         'face_photo',
         'patrol_time',
+        'qr_code_token',
+        'qr_scanned_at',
+        'qr_scanned_ip',
     ];
 
     protected function casts(): array
     {
         return [
             'patrol_time' => 'datetime',
+            'qr_scanned_at' => 'datetime',
             'photos' => 'array',
         ];
     }
@@ -76,5 +80,38 @@ class Patrol extends Model
     public function checkpoints(): HasMany
     {
         return $this->hasMany(PatrolCheckpoint::class);
+    }
+
+    /**
+     * Check if patrol is validated via QR code scan
+     */
+    public function isValidated(): bool
+    {
+        return $this->qr_scanned_at !== null && !empty($this->qr_code_token);
+    }
+
+    /**
+     * Mark patrol as validated with QR code scan
+     */
+    public function validateWithQrCode(string $token, ?string $ipAddress = null): bool
+    {
+        if ($this->qr_code_token === $token) {
+            $this->update([
+                'qr_scanned_at' => now(),
+                'qr_scanned_ip' => $ipAddress ?? request()?->ip(),
+            ]);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Generate unique QR code token for this patrol
+     */
+    public function generateQrToken(): void
+    {
+        if (empty($this->qr_code_token)) {
+            $this->update(['qr_code_token' => \Illuminate\Support\Str::random(32)]);
+        }
     }
 }

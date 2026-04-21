@@ -54,21 +54,33 @@ class EmployeeResource extends Resource
                             ->prefixIcon('heroicon-m-user')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\Select::make('dept_id')
-                            ->label('Departemen')
-                            ->helperText('Unit kerja tempat karyawan bertugas')
-                            ->relationship('department', 'name')
+                        Forms\Components\Select::make('shfgroup')
+                            ->label('Shift Group')
+                            ->helperText('Grup shift karyawan (A, B, C, atau D)')
+                            ->options([
+                                'A' => 'Group A',
+                                'B' => 'Group B',
+                                'C' => 'Group C',
+                                'D' => 'Group D',
+                            ])
                             ->required()
                             ->searchable()
-                            ->preload()
-                            ->prefixIcon('heroicon-m-building-office')
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('name')
-                                    ->label('Nama Departemen Baru')
-                                    ->required()
-                                    ->maxLength(255),
-                            ]),
+                            ->prefixIcon('heroicon-m-user-group'),
                     ])->columns(2),
+                Forms\Components\Section::make('Akun Pengguna')
+                    ->description('Link karyawan dengan akun user sistem')
+                    ->icon('heroicon-o-user-circle')
+                    ->schema([
+                        Forms\Components\Select::make('user_id')
+                            ->label('Akun User')
+                            ->placeholder('Pilih akun user (opsional)')
+                            ->helperText('Pilih akun user untuk terhubung dengan karyawan ini')
+                            ->relationship('user', 'email')
+                            ->getOptionLabelUsing(fn ($value) => \App\Models\User::find($value)?->email ?? '')
+                            ->searchable()
+                            ->preload()
+                            ->prefixIcon('heroicon-m-user'),
+                    ])->columns(1),
             ]);
     }
 
@@ -91,10 +103,26 @@ class EmployeeResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-m-user'),
-                Tables\Columns\TextColumn::make('department.name')
-                    ->label('Departemen')
+                Tables\Columns\TextColumn::make('user.email')
+                    ->label('Akun User')
+                    ->searchable()
+                    ->sortable()
                     ->badge()
-                    ->color('info')
+                    ->color('primary')
+                    ->default('-')
+                    ->icon('heroicon-m-user-circle'),
+                Tables\Columns\TextColumn::make('shfgroup')
+                    ->label('Shift Group')
+                    ->icon('heroicon-m-user-group')
+                    ->badge()
+                    ->color(fn (string $state): string => match($state) {
+                        'A' => 'success',
+                        'B' => 'info',
+                        'C' => 'warning',
+                        'D' => 'danger',
+                        default => 'gray',
+                    })
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Terdaftar Pada')
@@ -103,9 +131,14 @@ class EmployeeResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('dept_id')
-                    ->label('Departemen')
-                    ->relationship('department', 'name'),
+                Tables\Filters\SelectFilter::make('shfgroup')
+                    ->label('Shift Group')
+                    ->options([
+                        'A' => 'Group A',
+                        'B' => 'Group B',
+                        'C' => 'Group C',
+                        'D' => 'Group D',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

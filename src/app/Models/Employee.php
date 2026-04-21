@@ -11,15 +11,27 @@ class Employee extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nip', 'name', 'dept_id'];
+    protected $fillable = ['user_id', 'nip', 'name', 'shfgroup'];
 
-    public function department(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Department::class, 'dept_id');
+        return $this->belongsTo(User::class);
+    }
+
+    public function groupcal(): BelongsTo
+    {
+        return $this->belongsTo(Groupcal::class, 'shfgroup', 'shfgroup');
     }
 
     public function patrols(): HasMany
     {
         return $this->hasMany(Patrol::class);
     }
+    
+    // Accessor untuk kompatibilitas mundur
+    public function getDepartmentAttribute()
+    {
+        return (object) ['name' => $this->shfgroup ?? '-'];
+    }
 }
+

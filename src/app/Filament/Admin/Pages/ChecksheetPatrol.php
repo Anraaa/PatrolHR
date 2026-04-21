@@ -16,7 +16,6 @@ class ChecksheetPatrol extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon  = 'heroicon-o-table-cells';
     protected static ?string $navigationGroup = 'Patroli';
     protected static ?string $navigationLabel = 'Checksheet Patrol';
     protected static ?int    $navigationSort  = 4;
@@ -91,7 +90,7 @@ class ChecksheetPatrol extends Page implements HasForms
 
     public function loadData(): void
     {
-        $query = Patrol::with(['shift', 'user', 'employee.department', 'location'])
+        $query = Patrol::with(['shift', 'user', 'employee', 'location'])
             ->orderBy('patrol_time');
 
         if ($this->date_from) {

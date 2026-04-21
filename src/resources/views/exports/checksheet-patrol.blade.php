@@ -77,9 +77,9 @@
         <tbody>
             @forelse ($patrols as $i => $patrol)
                 @php
-                    $pt   = $patrol->patrol_time ? \Carbon\Carbon::parse($patrol->patrol_time) : null;
-                    $dept = $patrol->employee?->department;
-                    $sig  = $patrol->signature;
+                    $pt       = $patrol->patrol_time ? \Carbon\Carbon::parse($patrol->patrol_time) : null;
+                    $shfgroup = $patrol->employee?->shfgroup ?? '—';
+                    $sig      = $patrol->signature;
                     if ($sig && !str_starts_with($sig, 'data:')) {
                         try {
                             $path = \Illuminate\Support\Facades\Storage::disk('public')->path($sig);
@@ -94,7 +94,7 @@
                     <td class="col-no">{{ $i + 1 }}</td>
                     <td class="col-tanggal">{{ $pt?->format('d-m-Y') ?? '—' }}</td>
                     <td class="col-shift">{{ $patrol->shift?->name ?? '—' }}</td>
-                    <td class="col-group">{{ $dept?->name ?? '—' }}</td>
+                    <td class="col-group">{{ $shfgroup }}</td>
                     <td class="col-jam">{{ $pt?->format('H:i') ?? '—' }}</td>
                     <td class="col-petugas">{{ $patrol->user?->name ?? '—' }}</td>
                     <td class="col-paraf">

@@ -6,7 +6,6 @@ use App\Forms\Components\SignaturePad;
 use App\Filament\Admin\Resources\PatrolResource\Pages;
 use App\Models\Patrol;
 use App\Models\Employee;
-use App\Models\Department;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -16,12 +15,13 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\IconPosition;
 
 class PatrolResource extends Resource
 {
     protected static ?string $model = Patrol::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-shield-check';
 
     protected static ?string $navigationGroup = 'Patroli';
 
@@ -42,22 +42,19 @@ class PatrolResource extends Resource
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // FORM
+    // FORM (tidak diubah)
     // ─────────────────────────────────────────────────────────────────────────
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                // PEMBUNGKUS WIZARD (Penting untuk mencegah error isContained)
                 Forms\Components\Wizard::make([
 
-                    // ── STEP 1: Info Patroli ──────────────────────────────
                     Forms\Components\Wizard\Step::make('Info Patroli')
                         ->icon('heroicon-o-clock')
                         ->description('Waktu, shift, dan petugas')
                         ->schema([
 
-                            // ── Waktu & Shift ────────────────────────────
                             Forms\Components\Section::make('Waktu & Shift Patroli')
                                 ->description('Kapan patroli dilakukan dan siapa yang bertugas')
                                 ->icon('heroicon-o-clock')
@@ -104,7 +101,6 @@ class PatrolResource extends Resource
                                 ->columns(2)
                                 ->compact(),
 
-                            // ── Petugas Pelapor ──────────────────────────
                             Forms\Components\Section::make('Petugas Pelapor (PIC)')
                                 ->description('Satpam yang menginput laporan ini')
                                 ->icon('heroicon-o-user-circle')
@@ -127,13 +123,11 @@ class PatrolResource extends Resource
                                 ->compact(),
                         ]),
 
-                    // ── STEP 2: Identitas & Pelanggaran ──────────────────
                     Forms\Components\Wizard\Step::make('Karyawan & Pelanggaran')
                         ->icon('heroicon-o-identification')
                         ->description('Apakah ada temuan atau pelanggar?')
                         ->schema([
 
-                            // ── Toggle: Ada Temuan? ───────────────────────
                             Forms\Components\Section::make()
                                 ->schema([
                                     Forms\Components\Toggle::make('has_violation')
@@ -153,7 +147,6 @@ class PatrolResource extends Resource
                                 ])
                                 ->compact(),
 
-                            // ── Info: Tidak Ada Temuan ────────────────────
                             Forms\Components\Placeholder::make('_no_violation_info')
                                 ->label('')
                                 ->content(new \Illuminate\Support\HtmlString(
@@ -177,15 +170,15 @@ class PatrolResource extends Resource
                                         ->prefixIcon('heroicon-m-magnifying-glass')
                                         ->live()
                                         ->required(fn (Get $get) => (bool) $get('has_violation'))
-                                        ->afterStateUpdated(fn (Set $set, ?string $state) => 
-                                            $state ? $set('_dept_display', Employee::with('department')->find($state)?->department?->name) : $set('_dept_display', null)
+                                        ->afterStateUpdated(fn (Set $set, ?string $state) =>
+                                            $state ? $set('_group_display', Employee::find($state)?->shfgroup) : $set('_group_display', null)
                                         ),
 
-                                    Forms\Components\Placeholder::make('_dept_display')
-                                        ->label('Departemen')
+                                    Forms\Components\Placeholder::make('_group_display')
+                                        ->label('Shift Group')
                                         ->content(function (Get $get) {
                                             if (!$id = $get('employee_id')) return '— Pilih karyawan dulu';
-                                            return Employee::with('department')->find($id)?->department?->name ?? '-';
+                                            return Employee::find($id)?->shfgroup ?? '-';
                                         }),
                                 ])
                                 ->columns(2)
@@ -225,50 +218,47 @@ class PatrolResource extends Resource
                                         ]),
                                 ])
                                 ->compact(),
-                            
+
                             Forms\Components\Section::make('Detail Temuan & Respon')
-    ->visible(fn (Get $get) => (bool) $get('has_violation'))
-    ->schema([
-        Forms\Components\Textarea::make('description')
-            ->label('Deskripsi Temuan')
-            ->placeholder('Jelaskan temuan pelanggaran secara detail...')
-            ->rows(5)
-            ->columnSpanFull(),
+                                ->visible(fn (Get $get) => (bool) $get('has_violation'))
+                                ->schema([
+                                    Forms\Components\Textarea::make('description')
+                                        ->label('Deskripsi Temuan')
+                                        ->placeholder('Jelaskan temuan pelanggaran secara detail...')
+                                        ->rows(5)
+                                        ->columnSpanFull(),
 
-        Forms\Components\Select::make('action_id')
-            ->label('Tindakan yang Diambil')
-            ->relationship('action', 'name')
-            ->searchable()
-            ->preload()
-            ->prefixIcon('heroicon-m-hand-raised')
-            ->columnSpanFull(),
+                                    Forms\Components\Select::make('action_id')
+                                        ->label('Tindakan yang Diambil')
+                                        ->relationship('action', 'name')
+                                        ->searchable()
+                                        ->preload()
+                                        ->prefixIcon('heroicon-m-hand-raised')
+                                        ->columnSpanFull(),
 
-        Forms\Components\FileUpload::make('photos')
-            ->label('Foto Temuan')
-            ->helperText('Upload foto bukti pelanggaran (maks 5 foto)')
-            ->multiple()
-            ->image()
-            ->imageEditor()
-            ->directory('patrol-photos')
-            ->maxFiles(5)
-            ->openable()
-            ->downloadable()
-            ->columnSpanFull(),
-    ])->compact(),
+                                    Forms\Components\FileUpload::make('photos')
+                                        ->label('Foto Temuan')
+                                        ->helperText('Upload foto bukti pelanggaran (maks 5 foto)')
+                                        ->multiple()
+                                        ->image()
+                                        ->imageEditor()
+                                        ->directory('patrol-photos')
+                                        ->maxFiles(5)
+                                        ->openable()
+                                        ->downloadable()
+                                        ->columnSpanFull(),
+                                ])->compact(),
                         ]),
 
-                    // ── STEP 3: Checkpoint & Absensi ─────────────────────
                     Forms\Components\Wizard\Step::make('Checkpoint & Absensi')
                         ->icon('heroicon-o-qr-code')
                         ->description('Scan QR lokasi, foto muka, dan tanda tangan')
                         ->schema([
-                            // Hidden fields — diisi oleh Alpine.js/Livewire dispatch
                             Forms\Components\Hidden::make('checkpoint_location_id'),
                             Forms\Components\Hidden::make('checkpoint_uuid'),
                             Forms\Components\Hidden::make('checkpoint_face_photo_b64'),
                             Forms\Components\Hidden::make('checkpoint_signature'),
 
-                            // Interactive QR + GPS + Photo + Signature UI
                             Forms\Components\View::make('filament.forms.components.qr-checkpoint')
                                 ->columnSpanFull(),
                         ]),
@@ -287,103 +277,359 @@ class PatrolResource extends Resource
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // TABLE
+    // TABLE  ✨ UPGRADED
     // ─────────────────────────────────────────────────────────────────────────
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('face_photo')
-                    ->label('Absen')
-                    ->circular()
-                    ->size(44)
-                    ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?name=?&background=e5e7eb&color=6b7280&size=44'),
 
+                // ── 1. KOLOM ABSENSI / AVATAR ────────────────────────────────
+                Tables\Columns\ImageColumn::make('face_photo')
+                    ->label('')
+                    ->circular()
+                    ->size(46)
+                    ->ring(2)
+                    ->defaultImageUrl(fn ($record) =>
+                        'https://ui-avatars.com/api/?name=' . urlencode($record->user?->name ?? '?')
+                        . '&background=6366f1&color=ffffff&bold=true&size=64'
+                    )
+                    ->extraImgAttributes(['class' => 'shadow-md ring-indigo-300 dark:ring-indigo-700']),
+
+                // ── 2. WAKTU PATROLI ─────────────────────────────────────────
                 Tables\Columns\TextColumn::make('patrol_time')
                     ->label('Waktu Patroli')
-                    ->dateTime('d/m/Y H:i')
+                    ->dateTime('d M Y')
                     ->sortable()
-                    ->description(fn ($record) => $record->patrol_time?->diffForHumans())
-                    ->weight(\Filament\Support\Enums\FontWeight::Medium),
+                    ->weight(FontWeight::Bold)
+                    ->color('gray')
+                    ->description(fn ($record) =>
+                        ($record->patrol_time?->format('H:i') ?? '')
+                        . '  ·  ' . ($record->patrol_time?->diffForHumans() ?? '')
+                    )
+                    ->icon('heroicon-m-calendar-days')
+                    ->iconColor('indigo'),
 
+                // ── 3. PETUGAS + SHIFT ───────────────────────────────────────
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Petugas')
+                    ->label('Petugas & Shift')
                     ->sortable()
-                    ->description(fn ($record) => $record->shift?->name),
+                    ->searchable()
+                    ->weight(FontWeight::SemiBold)
+                    ->description(fn ($record) => $record->shift
+                        ? '🕐 ' . $record->shift->name
+                        : '— Shift tidak tercatat'
+                    )
+                    ->icon('heroicon-m-shield-check')
+                    ->iconColor('violet'),
 
+                // ── 4. LOKASI PATROLI ────────────────────────────────────────
+                Tables\Columns\TextColumn::make('location.name')
+                    ->label('Lokasi')
+                    ->sortable()
+                    ->searchable()
+                    ->weight(FontWeight::Medium)
+                    ->icon('heroicon-m-map-pin')
+                    ->iconColor('emerald')
+                    ->wrap()
+                    ->badge()
+                    ->color('success'),
+
+                // ── 5. STATUS QR SCAN ────────────────────────────────────────
+                Tables\Columns\TextColumn::make('qr_status')
+                    ->label('Validasi QR')
+                    ->getStateUsing(fn ($record) => $record->qr_scanned_at ? 'Tervalidasi' : 'Belum Scan')
+                    ->badge()
+                    ->color(fn (string $state): string => $state === 'Tervalidasi' ? 'success' : 'danger')
+                    ->icon(fn (string $state): string =>
+                        $state === 'Tervalidasi'
+                            ? 'heroicon-m-qr-code'
+                            : 'heroicon-m-exclamation-circle'
+                    )
+                    ->description(fn ($record) => $record->qr_scanned_at
+                        ? '✔ ' . $record->qr_scanned_at->format('d/m/Y H:i')
+                        : 'Scan QR belum dilakukan'
+                    ),
+
+                // ── 6. STATUS PELANGGARAN (besar & berwarna) ─────────────────
                 Tables\Columns\TextColumn::make('status_pelanggaran')
                     ->label('Status')
+                    ->getStateUsing(fn ($record) => $record->employee_id
+                        ? 'Ada Pelanggaran'
+                        : 'Aman'
+                    )
                     ->badge()
-                    ->getStateUsing(fn ($record) => $record->employee_id ? 'Ada Pelanggaran' : 'Tidak Ada Pelanggaran')
-                    ->color(fn (string $state): string => $state === 'Ada Pelanggaran' ? 'danger' : 'success'),
+                    ->size(Tables\Columns\TextColumn\TextColumnSize::Large)
+                    ->weight(FontWeight::Bold)
+                    ->color(fn (string $state): string => match ($state) {
+                        'Ada Pelanggaran' => 'danger',
+                        default           => 'success',
+                    })
+                    ->icon(fn (string $state): string => match ($state) {
+                        'Ada Pelanggaran' => 'heroicon-m-exclamation-triangle',
+                        default           => 'heroicon-m-shield-check',
+                    }),
 
+                // ── 7. PELANGGAR + NIP + GROUP ──────────────────────────────
                 Tables\Columns\TextColumn::make('employee.name')
-                    ->label('Karyawan Pelanggar')
+                    ->label('Pelanggar')
                     ->searchable()
                     ->sortable()
                     ->default('—')
+                    ->weight(FontWeight::Medium)
+                    ->icon(fn ($record) => $record->employee_id ? 'heroicon-m-user-circle' : null)
+                    ->iconColor('rose')
+                    ->color(fn ($record) => $record->employee_id ? 'danger' : 'gray')
                     ->description(fn ($record) => $record->employee
-                        ? ($record->employee->nip . ' · ' . $record->employee?->department?->name)
+                        ? '🪪 ' . $record->employee->nip . '   •   Grp ' . $record->employee->shfgroup
                         : null
                     ),
 
+                // ── 8. PELANGGARAN ──────────────────────────────────────────
                 Tables\Columns\TextColumn::make('violation.name')
                     ->label('Pelanggaran')
                     ->badge()
-                    ->default('Tidak ada pelanggaran')
+                    ->default('Tidak ada')
                     ->color(fn (?string $state): string =>
-                        ($state === null || $state === 'Tidak ada pelanggaran') ? 'success' : 'danger'
-                    ),
+                        ($state === null || $state === 'Tidak ada') ? 'gray' : 'danger'
+                    )
+                    ->icon(fn (?string $state): string =>
+                        ($state === null || $state === 'Tidak ada')
+                            ? 'heroicon-m-check-circle'
+                            : 'heroicon-m-no-symbol'
+                    )
+                    ->wrap(),
 
+                // ── 9. TINDAKAN ─────────────────────────────────────────────
                 Tables\Columns\TextColumn::make('action.name')
                     ->label('Tindakan')
                     ->badge()
                     ->default('—')
                     ->color(fn (?string $state): string => match (true) {
-                        $state && (str_contains($state, 'SP') || str_contains($state, 'Peringatan')) => 'danger',
-                        $state && $state !== '—' => 'success',
+                        $state && (str_contains($state, 'SP') || str_contains($state, 'Peringatan')) => 'warning',
+                        $state && $state !== '—' => 'info',
                         default => 'gray',
+                    })
+                    ->icon(fn (?string $state): string => match (true) {
+                        $state && (str_contains($state, 'SP') || str_contains($state, 'Peringatan')) => 'heroicon-m-hand-raised',
+                        $state && $state !== '—' => 'heroicon-m-check-badge',
+                        default => 'heroicon-m-minus',
                     }),
 
+                // ── 10. FOTO TEMUAN ─────────────────────────────────────────
                 Tables\Columns\ImageColumn::make('photos')
-                    ->label('Foto Temuan')
+                    ->label('Bukti Foto')
                     ->circular()
                     ->stacked()
-                    ->limit(3),
+                    ->limit(3)
+                    ->limitedRemainingText()
+                    ->ring(2)
+                    ->overlap(4),
+
             ])
-            ->defaultSort('patrol_time', 'desc')
+
+            // ─────────────────────────────────────────────────────────────────
+            // FILTERS  ✨
+            // ─────────────────────────────────────────────────────────────────
             ->filters([
+                // Filter shift
                 Tables\Filters\SelectFilter::make('shift_id')
                     ->label('Shift')
-                    ->relationship('shift', 'name'),
-                
-                Tables\Filters\SelectFilter::make('department')
-                    ->label('Departemen')
-                    ->options(fn () => Department::pluck('name', 'id'))
+                    ->relationship('shift', 'name')
+                    ->preload()
+                    ->native(false),
+
+                // Filter Group Karyawan
+                Tables\Filters\SelectFilter::make('shfgroup')
+                    ->label('Group Shift Pelanggar')
+                    ->options([
+                        'A' => 'Group A',
+                        'B' => 'Group B',
+                        'C' => 'Group C',
+                        'D' => 'Group D',
+                    ])
+                    ->native(false)
                     ->query(fn (Builder $query, array $data) => $query->when(
                         $data['value'],
-                        fn (Builder $q, $deptId) => $q->whereHas('employee', fn ($q) => $q->where('dept_id', $deptId))
+                        fn (Builder $q, $group) => $q->whereHas('employee', fn ($q) => $q->where('shfgroup', $group))
                     )),
+
+                // Filter status QR
+                Tables\Filters\Filter::make('qr_validated')
+                    ->label('Sudah Validasi QR')
+                    ->query(fn (Builder $query) => $query->whereNotNull('qr_scanned_at'))
+                    ->toggle(),
+
+                Tables\Filters\Filter::make('qr_pending')
+                    ->label('Belum Validasi QR')
+                    ->query(fn (Builder $query) => $query->whereNull('qr_scanned_at'))
+                    ->toggle(),
+
+                // Filter ada pelanggaran
+                Tables\Filters\Filter::make('has_violation')
+                    ->label('Ada Pelanggaran')
+                    ->query(fn (Builder $query) => $query->whereNotNull('employee_id'))
+                    ->toggle(),
+
+                // Filter rentang tanggal
+                Tables\Filters\Filter::make('patrol_time')
+                    ->label('Rentang Tanggal Patroli')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')
+                            ->label('Dari Tanggal')
+                            ->native(false)
+                            ->displayFormat('d/m/Y'),
+                        Forms\Components\DatePicker::make('until')
+                            ->label('Sampai Tanggal')
+                            ->native(false)
+                            ->displayFormat('d/m/Y'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['from'],  fn ($q, $date) => $q->whereDate('patrol_time', '>=', $date))
+                            ->when($data['until'], fn ($q, $date) => $q->whereDate('patrol_time', '<=', $date));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['from'] ?? null)  $indicators[] = Tables\Filters\Indicator::make('Dari: ' . $data['from'])->removeField('from');
+                        if ($data['until'] ?? null) $indicators[] = Tables\Filters\Indicator::make('Sampai: ' . $data['until'])->removeField('until');
+                        return $indicators;
+                    }),
+
+                // Filter petugas
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->label('Petugas')
+                    ->relationship('user', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
+
+                // Filter lokasi
+                Tables\Filters\SelectFilter::make('location_id')
+                    ->label('Lokasi Patroli')
+                    ->relationship('location', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
             ])
+            ->filtersLayout(FiltersLayout::AboveContentCollapsible)
+            ->filtersFormColumns(3)
+
+            // ─────────────────────────────────────────────────────────────────
+            // HEADER ACTIONS
+            // ─────────────────────────────────────────────────────────────────
+            ->headerActions([
+                Tables\Actions\Action::make('scan_qr')
+                    ->label('Scan QR Patrol')
+                    ->icon('heroicon-o-qr-code')
+                    ->color('indigo')
+                    ->url(fn () => static::getUrl('scan-qr'))
+                    ->button(),
+            ])
+
+            // ─────────────────────────────────────────────────────────────────
+            // ROW ACTIONS
+            // ─────────────────────────────────────────────────────────────────
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make(),
-                    Tables\Actions\EditAction::make(),
-                    Tables\Actions\DeleteAction::make(),
-                ]),
+                    Tables\Actions\ViewAction::make()
+                        ->color('info')
+                        ->icon('heroicon-o-eye'),
+
+                    Tables\Actions\EditAction::make()
+                        ->color('warning')
+                        ->icon('heroicon-o-pencil-square'),
+
+                    Tables\Actions\Action::make('download_report')
+                        ->label('Unduh Laporan')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('success')
+                        ->url(fn ($record) => route('patrol.report.download', $record))
+                        ->openUrlInNewTab(),
+
+                    Tables\Actions\DeleteAction::make()
+                        ->icon('heroicon-o-trash'),
+                ])
+                ->icon('heroicon-m-ellipsis-vertical')
+                ->color('gray')
+                ->button()
+                ->label('Aksi'),
             ])
+
+            // ─────────────────────────────────────────────────────────────────
+            // BULK ACTIONS
+            // ─────────────────────────────────────────────────────────────────
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+
+                    Tables\Actions\BulkAction::make('export_selected')
+                        ->label('Export ke Excel')
+                        ->icon('heroicon-o-table-cells')
+                        ->color('success')
+                        ->action(fn ($records) => null) // ganti dengan logic export sesungguhnya
+                        ->deselectRecordsAfterCompletion(),
                 ]),
+            ])
+
+            // ─────────────────────────────────────────────────────────────────
+            // SORTING & MISC
+            // ─────────────────────────────────────────────────────────────────
+            ->defaultSort('patrol_time', 'desc')
+            ->striped()
+            ->paginated([10, 25, 50, 100])
+            ->extremePaginationLinks()
+            ->poll('60s')
+            ->persistFiltersInSession()
+            ->persistSortInSession()
+            ->recordUrl(fn ($record) => static::getUrl('view', ['record' => $record]))
+            ->recordClasses(fn ($record) => match (true) {
+                // Baris merah terang jika ada pelanggaran & belum scan QR
+                $record->employee_id && ! $record->qr_scanned_at
+                    => 'bg-rose-50 dark:bg-rose-950/20 border-l-4 border-rose-500',
+
+                // Baris oranye jika ada pelanggaran tapi sudah scan
+                (bool) $record->employee_id
+                    => 'bg-orange-50 dark:bg-orange-950/20 border-l-4 border-orange-400',
+
+                // Baris kuning jika belum scan QR (tapi tidak ada pelanggaran)
+                ! $record->qr_scanned_at
+                    => 'bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-400',
+
+                // Normal — aman & sudah scan
+                default => 'border-l-4 border-transparent',
+            })
+            ->emptyStateIcon('heroicon-o-shield-exclamation')
+            ->emptyStateHeading('Belum Ada Laporan Patroli')
+            ->emptyStateDescription('Laporan patroli akan muncul di sini setelah petugas melakukan input atau scan QR.')
+            ->emptyStateActions([
+                Tables\Actions\Action::make('create')
+                    ->label('Buat Laporan Baru')
+                    ->icon('heroicon-m-plus')
+                    ->url(static::getUrl('create'))
+                    ->button()
+                    ->color('primary'),
             ]);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // QUERY
+    // ─────────────────────────────────────────────────────────────────────────
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getEloquentQuery();
 
-        // Non-admin users only see their own patrol records
+        // Add eager loading to prevent N+1 queries
+        $query->with([
+            'user',
+            'employee',
+            'shift',
+            'location',
+            'violation',
+            'action',
+            'checkpoints',
+        ]);
+
         if (! auth()->user()?->hasRole('super_admin')) {
             $query->where('user_id', auth()->id());
         }
@@ -391,10 +637,10 @@ class PatrolResource extends Resource
         return $query;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
     public static function getRelations(): array
     {
         return [
-            //\App\Filament\Admin\Resources\PatrolResource\RelationManagers\AttachmentsRelationManager::class,
             \App\Filament\Admin\Resources\PatrolResource\RelationManagers\CheckpointsRelationManager::class,
         ];
     }
@@ -402,10 +648,11 @@ class PatrolResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListPatrols::route('/'),
-            'create' => Pages\CreatePatrol::route('/create'),
-            'view'   => Pages\ViewPatrol::route('/{record}'),
-            'edit'   => Pages\EditPatrol::route('/{record}/edit'),
+            'index'   => Pages\ListPatrols::route('/'),
+            'create'  => Pages\CreatePatrol::route('/create'),
+            'view'    => Pages\ViewPatrol::route('/{record}'),
+            'edit'    => Pages\EditPatrol::route('/{record}/edit'),
+            'scan-qr' => Pages\ScanQrCode::route('/scan-qr'),
         ];
     }
 }

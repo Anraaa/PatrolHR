@@ -2,12 +2,14 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Events\PatrolQrScanned;
 use App\Models\Location;
 use App\Models\Patrol;
 use App\Models\Shift;
 use App\Models\User;
 use Carbon\Carbon;
 use Filament\Pages\Page;
+use Livewire\Attributes\On;
 
 class Dashboard extends Page
 {
@@ -37,6 +39,13 @@ class Dashboard extends Page
         // Trigger re-render
     }
 
+    #[On('patrolQrScanned')]
+    public function onPatrolQrScanned(): void
+    {
+        // Refresh data ketika ada QR scan - component akan re-render
+        $this->dispatch('refresh-component');
+    }
+
     public function getWidgets(): array
     {
         return [];
@@ -54,6 +63,7 @@ class Dashboard extends Page
 
     /**
      * Get monitoring patrol data for the selected month/year
+     * Data diambil dari SEMUA akun user, termasuk yang belum melakukan patrol
      */
     public function getMonitoringPatrolData(): array
     {
@@ -64,9 +74,8 @@ class Dashboard extends Page
         $monthEnd = $monthStart->copy()->endOfMonth();
         $daysInMonth = $monthEnd->day;
 
-        $users = User::where('role', 'pic')
-            ->orderBy('name')
-            ->get();
+        // Ambil SEMUA user, bahkan yang belum melakukan patrol
+        $users = User::orderBy('name')->get();
 
         $locations = Location::orderBy('name')->get();
         $shifts = Shift::orderBy('id')->get();
@@ -74,37 +83,53 @@ class Dashboard extends Page
         $tableData = [];
         
         foreach ($users as $user) {
-            foreach ($locations as $location) {
+            $rowSpan = $locations->count();
+
+            foreach ($locations as $index => $location) {
                 $rowKey = $user->id . '_' . $location->id;
                 
+                // Ambil patrols yang sudah ter-validasi via QR code scan
                 $patrols = Patrol::where('user_id', $user->id)
                     ->where('location_id', $location->id)
                     ->whereBetween('patrol_time', [$monthStart, $monthEnd])
+                    ->whereNotNull('qr_scanned_at')  // Hanya patrol yang sudah di-scan QR code
                     ->get();
 
                 $shiftsUsed = $patrols->pluck('shift_id')->unique()->values()->toArray();
+                
+                // Hitung total locations yang harus di-patrol per user
+                $totalLocations = $locations->count();
+                // Hitung berapa lokasi yang sudah di-patrol (minimum 1 patrol QR-validated per lokasi)
+                $locationsPatrolledCount = Patrol::where('user_id', $user->id)
+                    ->whereBetween('patrol_time', [$monthStart, $monthEnd])
+                    ->whereNotNull('qr_scanned_at')
+                    ->distinct('location_id')
+                    ->count('location_id');
 
                 $dailyData = [];
                 for ($day = 1; $day <= $daysInMonth; $day++) {
                     $date = Carbon::create($year, $month, $day);
 
-                    
-                    // Get patrol status for each shift on this day
+                    // Get patrol status untuk setiap shift pada hari ini
                     $shiftsStatus = [];
                     foreach ($shifts as $shift) {
-                        // Check if user has patrol for this shift on this day
-                        $hasPatrol = $patrols->contains(fn ($p) => 
+                        // Check jika user sudah scan QR untuk location ini di shift ini pada hari ini
+                        $validatedPatrol = $patrols->firstWhere(fn ($p) => 
                             $p->patrol_time->toDateString() === $date->toDateString() &&
-                            $p->shift_id === $shift->id
+                            $p->shift_id === $shift->id &&
+                            $p->isValidated()  // Gunakan method untuk check validasi
                         );
                         
-                        // Status: 1 = patrol ada (hijau), 0 = shift punya tapi ga ada patrol (merah), -1 = shift tidak ditugaskan (dash)
-                        if ($hasPatrol) {
-                            $shiftsStatus[$shift->id] = 1;  // Patrol exists - green checkmark
+                        // Status: 
+                        // 1 = patrol sudah dilakukan + QR code ter-scan (hijau ✓)
+                        // 0 = shift punya tapi belum scan QR (merah ✗)
+                        // -1 = shift tidak ditugaskan (dash —)
+                        if ($validatedPatrol) {
+                            $shiftsStatus[$shift->id] = 1;  // QR code validated
                         } elseif (in_array($shift->id, $shiftsUsed)) {
-                            $shiftsStatus[$shift->id] = 0;  // Shift assigned but no patrol - red X
+                            $shiftsStatus[$shift->id] = 0;  // Patrol exists but not validated
                         } else {
-                            $shiftsStatus[$shift->id] = -1; // Shift not assigned - dash
+                            $shiftsStatus[$shift->id] = -1; // Not assigned
                         }
                     }
                     
@@ -117,9 +142,14 @@ class Dashboard extends Page
                 $tableData[$rowKey] = [
                     'user_id' => $user->id,
                     'user_name' => $user->name,
+                    'user_email' => $user->email,
+                    'show_user_name' => $index === 0,
+                    'row_span' => $index === 0 ? $rowSpan : 0,
                     'location_id' => $location->id,
                     'location_name' => $location->name,
                     'shifts_used' => $shiftsUsed,
+                    'total_locations' => $totalLocations,
+                    'locations_patrolled' => $locationsPatrolledCount,
                     'daily_data' => $dailyData,
                 ];
             }

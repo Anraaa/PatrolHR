@@ -38,7 +38,7 @@
                     <th style="width: 10%">Tgl Patrol</th>
                     <th style="width: 7%">NIP</th>
                     <th style="width: 12%">Nama</th>
-                    <th style="width: 9%">Dept</th>
+                    <th style="width: 9%">Group</th>
                     <th style="width: 7%">Shift</th>
                     <th style="width: 18%">Item Temuan</th>
                     <th style="width: 10%">Pelanggaran</th>
@@ -54,7 +54,7 @@
                         <td>{{ $patrol->patrol_time?->format('d/m/Y H:i') }}</td>
                         <td>{{ $patrol->employee?->nip }}</td>
                         <td>{{ $patrol->employee?->name }}</td>
-                        <td>{{ $patrol->employee?->department?->name }}</td>
+                        <td>{{ $patrol->employee?->shfgroup }}</td>
                         <td><span class="badge badge-info">{{ $patrol->shift?->name }}</span></td>
                         <td>{{ $patrol->description }}</td>
                         <td><span class="badge badge-danger">{{ $patrol->violation?->name }}</span></td>

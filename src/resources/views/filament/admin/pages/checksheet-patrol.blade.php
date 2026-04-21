@@ -713,7 +713,7 @@
                         $shift     = $row['shift']    ?? null;
                         $user      = $row['user']     ?? null;
                         $employee  = $row['employee'] ?? null;
-                        $dept      = $employee['department'] ?? null;
+                        $shfgroup  = $employee['shfgroup'] ?? '—';
                         $signature = $row['signature'] ?? null;
 
                         $shiftName = $shift['name'] ?? null;
@@ -762,7 +762,7 @@
                         <td>
                             <span class="cs-group">
                                 <span class="cs-group-dot"></span>
-                                {{ $dept['name'] ?? '—' }}
+                                {{ $shfgroup }}
                             </span>
                         </td>
 

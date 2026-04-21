@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Pages;
 
-use App\Models\Department;
 use App\Models\Patrol;
 use App\Models\Shift;
 use Filament\Forms\Components\DatePicker;
@@ -16,7 +15,6 @@ class RekapTemuanPatrol extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon  = 'heroicon-o-clipboard-document-list';
     protected static ?string $navigationGroup = 'Patroli';
     protected static ?string $navigationLabel = 'Rekap Temuan Patrol';
     protected static ?int    $navigationSort  = 3;
@@ -28,7 +26,7 @@ class RekapTemuanPatrol extends Page implements HasForms
     public ?string $date_from    = null;
     public ?string $date_until   = null;
     public ?int    $shift_id     = null;
-    public ?int    $dept_id      = null;
+    public ?string $shfgroup     = null;
     public bool    $only_violations = false;
 
     // ── Computed data ─────────────────────────────────────────────────────────
@@ -66,10 +64,15 @@ class RekapTemuanPatrol extends Page implements HasForms
                     ->native(false)
                     ->live(),
 
-                Select::make('dept_id')
-                    ->label('Departemen')
-                    ->options(fn () => Department::pluck('name', 'id'))
-                    ->placeholder('Semua Departemen')
+                Select::make('shfgroup')
+                    ->label('Shift Group')
+                    ->options([
+                        'A' => 'Group A',
+                        'B' => 'Group B',
+                        'C' => 'Group C',
+                        'D' => 'Group D',
+                    ])
+                    ->placeholder('Semua Group')
                     ->native(false)
                     ->live(),
 
@@ -88,14 +91,14 @@ class RekapTemuanPatrol extends Page implements HasForms
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['date_from', 'date_until', 'shift_id', 'dept_id', 'only_violations'])) {
+        if (in_array($property, ['date_from', 'date_until', 'shift_id', 'shfgroup', 'only_violations'])) {
             $this->loadData();
         }
     }
 
     public function loadData(): void
     {
-        $query = Patrol::with(['employee.department', 'shift', 'location', 'violation', 'action', 'user'])
+        $query = Patrol::with(['employee', 'shift', 'location', 'violation', 'action', 'user'])
             ->orderByDesc('patrol_time');
 
         if ($this->date_from) {
@@ -107,8 +110,8 @@ class RekapTemuanPatrol extends Page implements HasForms
         if ($this->shift_id) {
             $query->where('shift_id', $this->shift_id);
         }
-        if ($this->dept_id) {
-            $query->whereHas('employee', fn ($q) => $q->where('dept_id', $this->dept_id));
+        if ($this->shfgroup) {
+            $query->whereHas('employee', fn ($q) => $q->where('shfgroup', $this->shfgroup));
         }
         if ($this->only_violations) {
             $query->whereNotNull('employee_id');
@@ -125,7 +128,7 @@ class RekapTemuanPatrol extends Page implements HasForms
             'date_from'       => $this->date_from,
             'date_until'      => $this->date_until,
             'shift_id'        => $this->shift_id,
-            'dept_id'         => $this->dept_id,
+            'shfgroup'        => $this->shfgroup,
             'only_violations' => $this->only_violations ? 1 : 0,
         ], fn ($v) => $v !== null && $v !== '' && $v !== false));
 
@@ -138,7 +141,7 @@ class RekapTemuanPatrol extends Page implements HasForms
             'date_from'       => $this->date_from,
             'date_until'      => $this->date_until,
             'shift_id'        => $this->shift_id,
-            'dept_id'         => $this->dept_id,
+            'shfgroup'        => $this->shfgroup,
             'only_violations' => $this->only_violations ? 1 : 0,
         ], fn ($v) => $v !== null && $v !== '' && $v !== false));
 
@@ -159,8 +162,8 @@ class RekapTemuanPatrol extends Page implements HasForms
         if ($this->shift_id) {
             $parts[] = 'Shift: ' . (Shift::find($this->shift_id)?->name ?? '-');
         }
-        if ($this->dept_id) {
-            $parts[] = 'Dept: ' . (Department::find($this->dept_id)?->name ?? '-');
+        if ($this->shfgroup) {
+            $parts[] = 'Group: ' . $this->shfgroup;
         }
         if ($this->only_violations) {
             $parts[] = 'Hanya pelanggaran';

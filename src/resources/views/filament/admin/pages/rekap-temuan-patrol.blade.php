@@ -61,7 +61,7 @@
                         @php
                             $patrolTime = $row['patrol_time'] ? \Carbon\Carbon::parse($row['patrol_time']) : null;
                             $employee   = $row['employee'] ?? null;
-                            $dept       = $employee['department'] ?? null;
+                            $shfgroup   = $employee['shfgroup'] ?? '—';
                             $shift      = $row['shift'] ?? null;
                             $location   = $row['location'] ?? null;
                             $violation  = $row['violation'] ?? null;
@@ -105,7 +105,7 @@
 
                             {{-- 4. Group / Dept --}}
                             <td class="px-4 py-4 text-sm text-gray-900 dark:text-white">
-                                {{ $dept['name'] ?? '—' }}
+                                {{ $shfgroup }}
                             </td>
 
                             {{-- 5. Jam --}}

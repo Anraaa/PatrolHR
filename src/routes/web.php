@@ -17,6 +17,12 @@ Livewire::setScriptRoute(function ($handle) {
 / END
 */
 
+// QR Code validation API routes
+Route::middleware(['auth'])->prefix('api/qr')->group(function () {
+    Route::post('/generate-token', [\App\Http\Controllers\PatrolQrController::class, 'generateToken']);
+    Route::post('/validate/{token}', [\App\Http\Controllers\PatrolQrController::class, 'validateQrScan']);
+});
+
 // QR Code scan — checkpoint mode: petugas isi form dulu, lalu scan QR di setiap pos
 Route::get('/admin/patrols/scan/{uuid}', function (string $uuid) {
     if (! auth()->check()) {
@@ -196,16 +202,16 @@ Route::get('/admin/patrols/rekap-temuan/export-pdf', function () {
     $dateFrom       = request('date_from');
     $dateUntil      = request('date_until');
     $shiftId        = request('shift_id');
-    $deptId         = request('dept_id');
+    $shfgroup       = request('shfgroup');
     $onlyViolations = (bool) request('only_violations', false);
 
-    $query = \App\Models\Patrol::with(['employee.department', 'shift', 'location', 'violation', 'action', 'user'])
+    $query = \App\Models\Patrol::with(['employee', 'shift', 'location', 'violation', 'action', 'user'])
         ->orderByDesc('patrol_time');
 
     if ($dateFrom)       $query->whereDate('patrol_time', '>=', $dateFrom);
     if ($dateUntil)      $query->whereDate('patrol_time', '<=', $dateUntil);
     if ($shiftId)        $query->where('shift_id', $shiftId);
-    if ($deptId)         $query->whereHas('employee', fn ($q) => $q->where('dept_id', $deptId));
+    if ($shfgroup)       $query->whereHas('employee', fn ($q) => $q->where('shfgroup', $shfgroup));
     if ($onlyViolations) $query->whereNotNull('employee_id');
 
     $patrols = $query->get();
@@ -236,7 +242,7 @@ Route::get('/admin/patrols/rekap-temuan/export-pdf', function () {
         $filterParts[] = 'Sampai: ' . \Carbon\Carbon::parse($dateUntil)->format('d/m/Y');
     }
     if ($shiftId) $filterParts[] = 'Shift: ' . (\App\Models\Shift::find($shiftId)?->name ?? '-');
-    if ($deptId)  $filterParts[] = 'Dept: '  . (\App\Models\Department::find($deptId)?->name  ?? '-');
+    if ($shfgroup)  $filterParts[] = 'Group: '  . $shfgroup;
     if ($onlyViolations) $filterParts[] = 'Hanya pelanggaran';
 
     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.rekap-temuan-patrol', [
@@ -257,16 +263,16 @@ Route::get('/admin/patrols/rekap-temuan/export-excel', function () {
     $dateFrom       = request('date_from');
     $dateUntil      = request('date_until');
     $shiftId        = request('shift_id');
-    $deptId         = request('dept_id');
+    $shfgroup       = request('shfgroup');
     $onlyViolations = (bool) request('only_violations', false);
 
-    $query = \App\Models\Patrol::with(['employee.department', 'shift', 'location', 'violation', 'action', 'user'])
+    $query = \App\Models\Patrol::with(['employee', 'shift', 'location', 'violation', 'action', 'user'])
         ->orderByDesc('patrol_time');
 
     if ($dateFrom)       $query->whereDate('patrol_time', '>=', $dateFrom);
     if ($dateUntil)      $query->whereDate('patrol_time', '<=', $dateUntil);
     if ($shiftId)        $query->where('shift_id', $shiftId);
-    if ($deptId)         $query->whereHas('employee', fn ($q) => $q->where('dept_id', $deptId));
+    if ($shfgroup)       $query->whereHas('employee', fn ($q) => $q->where('shfgroup', $shfgroup));
     if ($onlyViolations) $query->whereNotNull('employee_id');
 
     $patrols = $query->get();
@@ -292,7 +298,7 @@ Route::get('/admin/patrols/rekap-temuan/export-excel', function () {
         $filterParts[] = 'Sampai: ' . \Carbon\Carbon::parse($dateUntil)->format('d/m/Y');
     }
     if ($shiftId) $filterParts[] = 'Shift: ' . (\App\Models\Shift::find($shiftId)?->name ?? '-');
-    if ($deptId)  $filterParts[] = 'Dept: '  . (\App\Models\Department::find($deptId)?->name  ?? '-');
+    if ($shfgroup)  $filterParts[] = 'Group: '  . $shfgroup;
     if ($onlyViolations) $filterParts[] = 'Hanya pelanggaran';
 
     $sheet->mergeCells('A2:J2');
@@ -340,7 +346,7 @@ Route::get('/admin/patrols/rekap-temuan/export-excel', function () {
     foreach ($patrols as $i => $row) {
         $time     = $row->patrol_time ? \Carbon\Carbon::parse($row->patrol_time) : null;
         $employee = $row->employee;
-        $dept     = $employee->department ?? null;
+        $shfgroup = $employee->shfgroup ?? '-';
         $photos   = $row->photos ?? [];
 
         // 1. No
@@ -353,7 +359,7 @@ Route::get('/admin/patrols/rekap-temuan/export-excel', function () {
         $sheet->setCellValue('C' . $dataRow, $row->shift->name ?? '-');
 
         // 4. Group / Dept
-        $sheet->setCellValue('D' . $dataRow, $dept->name ?? '-');
+        $sheet->setCellValue('D' . $dataRow, $shfgroup);
 
         // 5. Jam
         $sheet->setCellValue('E' . $dataRow, $time ? $time->format('H:i') : '-');
