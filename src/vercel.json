@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
+  "functions": {
+    "api/index.php": {
+      "runtime": "vercel-php@0.7.1"
+    }
+  },
+  "routes": [
+    {
+      "src": "/public/build/(.*)",
+      "dest": "/public/build/$1"
+    },
+    {
+      "src": "/public/storage/(.*)",
+      "dest": "/public/storage/$1"
+    },
+    {
+      "src": "/public/vendor/(.*)",
+      "dest": "/public/vendor/$1"
+    },
+    {
+      "src": "/public/css/(.*)",
+      "dest": "/public/css/$1"
+    },
+    {
+      "src": "/public/js/(.*)",
+      "dest": "/public/js/$1"
+    },
+    {
+      "src": "/(.*\\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))",
+      "dest": "/public/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.php"
+    }
+  ]
+}

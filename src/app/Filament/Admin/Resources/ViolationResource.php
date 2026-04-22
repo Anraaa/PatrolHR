@@ -14,15 +14,15 @@ class ViolationResource extends Resource
 {
     protected static ?string $model = Violation::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-exclamation-triangle';
-
-    protected static ?string $navigationGroup = 'Master Data';
-
-    protected static ?string $label = 'Jenis Pelanggaran';
 
     protected static ?string $pluralLabel = 'Jenis Pelanggaran';
 
     protected static ?int $navigationSort = 5;
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->withCount(['patrols']);
+    }
 
     public static function form(Form $form): Form
     {

@@ -16,15 +16,15 @@ class LocationResource extends Resource
 {
     protected static ?string $model = Location::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-map-pin';
-
-    protected static ?string $navigationGroup = 'Master Data';
-
-    protected static ?string $label = 'Lokasi';
 
     protected static ?string $pluralLabel = 'Lokasi';
 
     protected static ?int $navigationSort = 4;
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->withCount(['patrols']);
+    }
 
     public static function form(Form $form): Form
     {

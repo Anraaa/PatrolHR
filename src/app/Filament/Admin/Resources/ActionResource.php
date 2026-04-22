@@ -14,11 +14,6 @@ class ActionResource extends Resource
 {
     protected static ?string $model = Action::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-hand-raised';
-
-    protected static ?string $navigationGroup = 'Master Data';
-
-    protected static ?int $navigationSort = 6;
 
     protected static ?string $label = 'Tindakan';
 

@@ -33,12 +33,13 @@ class PatrolResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        return cache()->remember('patrol_count_badge', 3600, fn () => (string) static::getModel()::count());
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return static::getModel()::count() > 0 ? 'warning' : 'success';
+        $count = cache()->remember('patrol_count_color', 3600, fn () => static::getModel()::count());
+        return $count > 0 ? 'warning' : 'success';
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -30,7 +30,12 @@ class UserResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        return cache()->remember('user_count_badge', 3600, fn () => (string) static::getModel()::count());
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->with(['roles']);
     }
 
     public static function getGloballySearchableAttributes(): array

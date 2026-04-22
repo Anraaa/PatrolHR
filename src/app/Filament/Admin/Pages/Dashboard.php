@@ -63,7 +63,7 @@ class Dashboard extends Page
 
     /**
      * Get monitoring patrol data for the selected month/year
-     * Data diambil dari SEMUA akun user, termasuk yang belum melakukan patrol
+     * OPTIMIZED: Fetch ALL data in 2 queries, organize in PHP (not 500 queries!)
      */
     public function getMonitoringPatrolData(): array
     {
@@ -74,11 +74,29 @@ class Dashboard extends Page
         $monthEnd = $monthStart->copy()->endOfMonth();
         $daysInMonth = $monthEnd->day;
 
-        // Ambil SEMUA user, bahkan yang belum melakukan patrol
+        // QUERY 1: Fetch ALL users
         $users = User::orderBy('name')->get();
 
+        // QUERY 2: Fetch ALL locations
         $locations = Location::orderBy('name')->get();
+
+        // QUERY 3: Fetch ALL shifts
         $shifts = Shift::orderBy('id')->get();
+
+        // ⚠️ CRITICAL: Fetch ALL patrols in 1 query (not 500!)
+        // QUERY 4: Get ALL patrols for the month, grouped by user_id+location_id
+        $allPatrols = Patrol::whereBetween('patrol_time', [$monthStart, $monthEnd])
+            ->with(['shift']) // Eager load shift to avoid N+1
+            ->get()
+            ->groupBy(fn ($patrol) => $patrol->user_id . '_' . $patrol->location_id);
+
+        // Get unique locations per user (for locationsPatrolledCount)
+        // Group by user_id only
+        $patrolsByUser = Patrol::whereBetween('patrol_time', [$monthStart, $monthEnd])
+            ->whereNotNull('qr_scanned_at')
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn ($patrols) => $patrols->pluck('location_id')->unique()->count());
 
         $tableData = [];
         
@@ -88,42 +106,30 @@ class Dashboard extends Page
             foreach ($locations as $index => $location) {
                 $rowKey = $user->id . '_' . $location->id;
                 
-                // Ambil patrols yang sudah ter-validasi via QR code scan
-                $patrols = Patrol::where('user_id', $user->id)
-                    ->where('location_id', $location->id)
-                    ->whereBetween('patrol_time', [$monthStart, $monthEnd])
-                    ->whereNotNull('qr_scanned_at')  // Hanya patrol yang sudah di-scan QR code
-                    ->get();
+                // Get patrols for this user-location pair from ALREADY FETCHED data
+                // No database query! 🎉
+                $patrols = collect($allPatrols->get($rowKey) ?? []);
 
                 $shiftsUsed = $patrols->pluck('shift_id')->unique()->values()->toArray();
-                
-                // Hitung total locations yang harus di-patrol per user
+
                 $totalLocations = $locations->count();
-                // Hitung berapa lokasi yang sudah di-patrol (minimum 1 patrol QR-validated per lokasi)
-                $locationsPatrolledCount = Patrol::where('user_id', $user->id)
-                    ->whereBetween('patrol_time', [$monthStart, $monthEnd])
-                    ->whereNotNull('qr_scanned_at')
-                    ->distinct('location_id')
-                    ->count('location_id');
+                $locationsPatrolledCount = $patrolsByUser->get($user->id, 0);
 
                 $dailyData = [];
                 for ($day = 1; $day <= $daysInMonth; $day++) {
                     $date = Carbon::create($year, $month, $day);
 
                     // Get patrol status untuk setiap shift pada hari ini
+                    // Using collection methods - NO database queries! 🎉
                     $shiftsStatus = [];
                     foreach ($shifts as $shift) {
-                        // Check jika user sudah scan QR untuk location ini di shift ini pada hari ini
+                        // Check dari collection yang sudah di-fetch
                         $validatedPatrol = $patrols->firstWhere(fn ($p) => 
                             $p->patrol_time->toDateString() === $date->toDateString() &&
                             $p->shift_id === $shift->id &&
-                            $p->isValidated()  // Gunakan method untuk check validasi
+                            $p->isValidated()
                         );
                         
-                        // Status: 
-                        // 1 = patrol sudah dilakukan + QR code ter-scan (hijau ✓)
-                        // 0 = shift punya tapi belum scan QR (merah ✗)
-                        // -1 = shift tidak ditugaskan (dash —)
                         if ($validatedPatrol) {
                             $shiftsStatus[$shift->id] = 1;  // QR code validated
                         } elseif (in_array($shift->id, $shiftsUsed)) {

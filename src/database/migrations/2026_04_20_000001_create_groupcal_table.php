@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('groupcal', function (Blueprint $table) {
             $table->string('date_shift', 20)->primary();
             $table->string('shfgroup', 3)->nullable();
-            $table->charset = 'latin1';
-            $table->collation = 'latin1_swedish_ci';
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
         });
         
         // Data akan di-seed melalui GroupcalSeeder

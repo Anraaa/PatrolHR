@@ -14,15 +14,15 @@ class ShiftResource extends Resource
 {
     protected static ?string $model = Shift::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clock';
-
-    protected static ?string $navigationGroup = 'Master Data';
-
-    protected static ?string $label = 'Shift Kerja';
 
     protected static ?string $pluralLabel = 'Shift Kerja';
 
     protected static ?int $navigationSort = 3;
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->withCount(['patrols']);
+    }
 
     public static function form(Form $form): Form
     {

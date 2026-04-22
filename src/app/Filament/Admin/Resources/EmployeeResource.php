@@ -14,11 +14,6 @@ class EmployeeResource extends Resource
 {
     protected static ?string $model = Employee::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-identification';
-
-    protected static ?string $navigationGroup = 'Master Data';
-
-    protected static ?string $label = 'Karyawan';
 
     protected static ?string $pluralLabel = 'Karyawan';
 
@@ -28,7 +23,12 @@ class EmployeeResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        return cache()->remember('employee_count_badge', 3600, fn () => (string) static::getModel()::count());
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->with(['user']);
     }
 
     public static function form(Form $form): Form
