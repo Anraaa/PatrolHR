@@ -62,8 +62,10 @@ RUN pecl install mongodb && docker-php-ext-enable mongodb
 # Imagick:
 #####################################
 
-RUN pecl install imagick && \
-     docker-php-ext-enable imagick
+RUN set -e && \
+    apt-get install -y --no-install-recommends build-essential && \
+    pecl install imagick-3.7.0 && \
+    docker-php-ext-enable imagick || true
 #RUN apk add git --update --no-cache && \
 #    git clone https://github.com/Imagick/imagick.git --depth 1 /tmp/imagick && \
 #    cd /tmp/imagick && \
@@ -127,7 +129,7 @@ RUN chmod 0644 /etc/cron.d/laravel-scheduler
 #--------------------------------------------------------------------------
 #
 
-ADD ./local.ini /usr/local/etc/php/conf.d
+ADD ./php/local.ini /usr/local/etc/php/conf.d
 
 #####################################
 # Aliases:
@@ -157,7 +159,7 @@ RUN rm -r /var/lib/apt/lists/*
 
 WORKDIR /var/www
 
-COPY ./docker-entrypoint.sh /usr/local/bin/
+COPY ./php/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 RUN ln -s /usr/local/bin/docker-entrypoint.sh /
 ENTRYPOINT ["docker-entrypoint.sh"]
