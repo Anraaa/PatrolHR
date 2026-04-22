@@ -5,10 +5,16 @@ services:
     image: sample_php:latest
     container_name: sample
     hostname: "sample"
+    ports:
+      - "5173:5173"
+      - "8000:8000"
     volumes:
       - ./src:/var/www/html
       - ./php/www.conf:/usr/local/etc/php-fpm.d/www.conf
     working_dir: /var/www/html
+    environment:
+      - VITE_HMR_HOST=localhost
+      - VITE_HMR_PORT=5173
     depends_on:
       - db_sample
     extra_hosts:

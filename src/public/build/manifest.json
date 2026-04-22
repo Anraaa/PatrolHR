@@ -9,10 +9,31 @@
     "src": "resources/css/filament/admin/theme.css",
     "isEntry": true
   },
+  "resources/css/pwa-ui.css": {
+    "file": "assets/pwa-ui-BtA9jiq4.css",
+    "src": "resources/css/pwa-ui.css",
+    "isEntry": true
+  },
   "resources/js/app.js": {
-    "file": "assets/app-BbzB21r_.js",
+    "file": "assets/app-BPtXiROb.js",
     "name": "app",
     "src": "resources/js/app.js",
+    "isEntry": true,
+    "imports": [
+      "resources/js/pwa-sw-register.js",
+      "resources/js/pwa-install.js"
+    ]
+  },
+  "resources/js/pwa-install.js": {
+    "file": "assets/pwa-install-B8atOq8d.js",
+    "name": "pwa-install",
+    "src": "resources/js/pwa-install.js",
+    "isEntry": true
+  },
+  "resources/js/pwa-sw-register.js": {
+    "file": "assets/pwa-sw-register-DyLoivog.js",
+    "name": "pwa-sw-register",
+    "src": "resources/js/pwa-sw-register.js",
     "isEntry": true
   }
 }

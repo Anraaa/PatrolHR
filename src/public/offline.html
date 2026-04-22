@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Offline - Checksheet Patrol System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .offline-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            padding: 40px;
+            max-width: 450px;
+            text-align: center;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .offline-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            display: block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .offline-status {
+            color: #e74c3c;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        p {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            text-align: left;
+        }
+
+        .info-box strong {
+            color: #333;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .info-box p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .button-group {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d5dbdb;
+        }
+
+        .cached-pages {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .cached-pages h3 {
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .cached-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .cached-item {
+            background: #f0f4ff;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #667eea;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e7ff;
+        }
+
+        .cached-item:hover {
+            background: #e0e7ff;
+            transform: translateY(-1px);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .connection-status {
+            margin-top: 20px;
+            padding: 12px;
+            background: #fff3cd;
+            border-radius: 6px;
+            color: #856404;
+            font-size: 13px;
+            display: none;
+        }
+
+        .connection-status.checking {
+            display: block;
+        }
+
+        .connection-status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <span class="offline-icon">📡</span>
+        
+        <div class="offline-status">Tidak Ada Koneksi</div>
+        
+        <h1>Anda Sedang Offline</h1>
+        
+        <p>Silakan periksa koneksi internet Anda untuk melanjutkan.</p>
+
+        <div class="info-box">
+            <strong>💡 Saran:</strong>
+            <p>
+                Beberapa halaman dan data yang telah Anda buka sebelumnya mungkin masih tersedia. 
+                Tunggu hingga koneksi dipulihkan atau coba akses kembali.
+            </p>
+        </div>
+
+        <div class="connection-status" id="connectionStatus">
+            <span class="spinner"></span>
+            Memeriksa koneksi...
+        </div>
+
+        <div class="button-group">
+            <button class="btn-secondary" onclick="location.reload();">
+                🔄 Muat Ulang
+            </button>
+            <button class="btn-primary" id="retryBtn" onclick="checkConnection();">
+                🔗 Coba Lagi
+            </button>
+        </div>
+
+        <div class="cached-pages">
+            <h3>📂 Halaman yang Tersimpan</h3>
+            <div class="cached-list" id="cachedList">
+                <p style="grid-column: 1/-1; color: #999; font-size: 13px;">Memuat...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check connection and update UI
+        function checkConnection() {
+            const statusEl = document.getElementById('connectionStatus');
+            const retryBtn = document.getElementById('retryBtn');
+            
+            statusEl.classList.add('checking');
+            retryBtn.disabled = true;
+
+            // Simple fetch to check connectivity
+            fetch('/index.php', { 
+                method: 'HEAD',
+                cache: 'no-cache'
+            })
+            .then(() => {
+                statusEl.classList.remove('checking');
+                statusEl.classList.add('online');
+                statusEl.innerHTML = '✅ Koneksi berhasil! Memuat ulang...';
+                setTimeout(() => location.reload(), 1500);
+            })
+            .catch(() => {
+                statusEl.classList.remove('checking');
+                statusEl.innerHTML = '❌ Masih tidak ada koneksi. Coba lagi nanti.';
+                retryBtn.disabled = false;
+            });
+        }
+
+        // Load cached pages list
+        async function loadCachedPages() {
+            try {
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    const cachedPages = [];
+
+                    for (const cacheName of cacheNames) {
+                        const cache = await caches.open(cacheName);
+                        const requests = await cache.keys();
+                        
+                        requests.forEach(request => {
+                            const url = new URL(request.url);
+                            // Only show document pages, not API or assets
+                            if (!url.pathname.startsWith('/api/') && 
+                                !url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico)$/i)) {
+                                cachedPages.push({
+                                    url: url.pathname === '/' ? '/dashboard' : url.pathname,
+                                    name: url.pathname === '/' ? 'Beranda' : url.pathname.split('/').pop() || 'Halaman'
+                                });
+                            }
+                        });
+                    }
+
+                    const cachedList = document.getElementById('cachedList');
+                    
+                    if (cachedPages.length === 0) {
+                        cachedList.innerHTML = '<p style="grid-column: 1/-1; color: #999; font-size: 13px;">Tidak ada halaman yang tersimpan</p>';
+                    } else {
+                        const uniquePages = Array.from(
+                            new Map(cachedPages.map(p => [p.url, p])).values()
+                        );
+                        
+                        cachedList.innerHTML = uniquePages
+                            .slice(0, 6)
+                            .map(page => `
+                                <a href="${page.url}" class="cached-item">
+                                    📄 ${page.name}
+                                </a>
+                            `)
+                            .join('');
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading cached pages:', err);
+                document.getElementById('cachedList').innerHTML = '<p style="grid-column: 1/-1; color: #999;">Gagal memuat cache</p>';
+            }
+        }
+
+        // Monitor online/offline events
+        window.addEventListener('online', () => {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.classList.remove('checking');
+            statusEl.classList.add('online');
+            statusEl.innerHTML = '✅ Koneksi berhasil! Memuat ulang...';
+            setTimeout(() => location.reload(), 1500);
+        });
+
+        window.addEventListener('offline', () => {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.classList.remove('online');
+            statusEl.innerHTML = '❌ Koneksi terputus';
+        });
+
+        // Load cached pages on page load
+        window.addEventListener('load', loadCachedPages);
+
+        // Auto-check connection every 10 seconds
+        setInterval(() => {
+            if (!document.getElementById('connectionStatus').classList.contains('checking')) {
+                fetch('/index.php', { method: 'HEAD', cache: 'no-cache' })
+                    .then(() => {
+                        const statusEl = document.getElementById('connectionStatus');
+                        if (!statusEl.classList.contains('online')) {
+                            statusEl.classList.add('online');
+                            statusEl.innerHTML = '✅ Koneksi berhasil! Memuat ulang...';
+                            setTimeout(() => location.reload(), 1500);
+                        }
+                    })
+                    .catch(() => {
+                        // Still offline
+                    });
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
