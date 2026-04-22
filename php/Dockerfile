@@ -14,12 +14,8 @@ RUN apt-get update && \
         libzip-dev \
         libz-dev \
         libpq-dev \
-        libjpeg-dev \
-        libpng-dev \
-        libfreetype6-dev \
         libssl-dev \
         openssh-server \
-        libmagickwand-dev \
         git \
         cron \
         nano \
@@ -29,7 +25,7 @@ RUN apt-get update && \
 # Install soap extention
 RUN docker-php-ext-install soap
 
-# Install for image manipulationdock
+# Install exif extension for metadata reading
 RUN docker-php-ext-install exif
 
 # Install the PHP pcntl extention
@@ -58,37 +54,7 @@ RUN docker-php-ext-install bcmath
 #####################################
 RUN pecl install redis && docker-php-ext-enable redis
 RUN pecl install mongodb && docker-php-ext-enable mongodb
-#####################################
-# Imagick:
-#####################################
-
-RUN set -e && \
-    apt-get install -y --no-install-recommends build-essential && \
-    pecl install imagick-3.7.0 && \
-    docker-php-ext-enable imagick || true
-#RUN apk add git --update --no-cache && \
-#    git clone https://github.com/Imagick/imagick.git --depth 1 /tmp/imagick && \
-#    cd /tmp/imagick && \
-#    git fetch origin master && \
-#    git switch master && \
-#    cd /tmp/imagick && \
-#    phpsize && \
-#    ./configure && \
-#    make && \
-#    make install && \
-#    apk del git && \
-#    docker-php-ext-enable imagick
-#####################################
-# GD:
-#####################################
-
-# Install the PHP gd library
-RUN docker-php-ext-install gd && \
-#    docker-php-ext-configure gd \
-#        --with-jpeg-dir
-#        --with-freetype-dir=/usr/include/freetype2 && \
-     docker-php-ext-configure gd --with-freetype --with-jpeg && \
-     docker-php-ext-install gd
+# Note: Imagick and GD removed - using SVG format for QR codes (no image processing needed)
 #####################################
 # xDebug:
 #####################################

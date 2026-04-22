@@ -394,13 +394,13 @@
                 <div class="qr-corner br"></div>
                 <div class="qr-frame">
                     @php
-                        $png = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')
+                        // Generate QR code in SVG format (no GD/Imagick needed)
+                        $svg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
                                 ->size(150)
                                 ->margin(0)
-                                ->errorCorrection('H')
                                 ->generate($location->qr_content);
                     @endphp
-                    <img src="data:image/png;base64,{{ base64_encode($png) }}" alt="QR {{ $location->name }}">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 150px; height: 150px;">{!! $svg !!}</div>
                 </div>
             </div>
             <div class="qr-info">
